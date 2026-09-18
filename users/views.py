@@ -11,6 +11,13 @@ from .serializers import PaymentSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import IsAuthenticated
+from .models import Payment
+from .serializers import PaymentSerializer
+from .services import create_stripe_product, create_stripe_price, create_stripe_session
+
+
 class UserProfileUpdateAPIView(generics.RetrieveUpdateAPIView):
     """
     Эндпоинт для просмотра и редактирования профиля пользователя.
@@ -53,3 +60,27 @@ class UserDestroyAPIView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+
+class PaymentCreateAPIView(CreateAPIView):
+    serializer_class = PaymentSerializer
+    queryset = Payment.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Сохраняем платеж с привязкой к текущему авторизованному пользователю
+        payment = serializer.save(user=self.request.user)
+
+        # Получаем название курса и его стоимость
+        course_name = payment.course.title
+        amount = payment.amount
+
+        # Интеграция со Stripe через сервисные функции
+        product_id = create_stripe_product(course_name)
+        price_id = create_stripe_price(amount, product_id)
+        payment_link, session_id = create_stripe_session(price_id)
+
+        # Обновляем объект платежа созданными данными
+        payment.payment_link = payment_link
+        payment.session_id = session_id
+        payment.save()

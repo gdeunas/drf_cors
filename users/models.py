@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from django.conf import settings
+
 
 class User(AbstractUser):
     username = None
@@ -83,3 +85,30 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Платеж {self.user} - {self.amount}"
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Пользователь"
+    )
+    date = models.DateTimeField(auto_now_add=True, verbose_name="Дата оплаты")
+    course = models.ForeignKey(
+        "courses.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Оплаченный курс",
+    )
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="Сумма оплаты"
+    )
+    payment_link = models.URLField(
+        max_length=400, null=True, blank=True, verbose_name="Ссылка на оплату"
+    )
+    session_id = models.CharField(
+        max_length=255, null=True, blank=True, verbose_name="ID сессии Stripe"
+    )
+
+    class Meta:
+        verbose_name = "Платеж"
+        verbose_name_plural = "Платежи"
