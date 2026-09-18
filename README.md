@@ -1,4 +1,4 @@
-# Django drf_validators HW_32.2
+# Django drf_cors HW_32.2
  
 ## Описание:
 
